@@ -32,8 +32,8 @@ object Twace {
       sys.exit(1)
     }
 	
-    Logger.getLogger("org").setLevel(Level.WARN)
-    Logger.getLogger("akka").setLevel(Level.WARN)	
+    Logger.getLogger("org").setLevel(Level.ERROR)
+    Logger.getLogger("akka").setLevel(Level.ERROR)	
 	
     // set up environment
 	
@@ -45,8 +45,8 @@ object Twace {
 		val parser = new CSVParser(',')
 		lines.map( line => {
 			val columns = parser.parseLine(line)
-			// format: (User Id, (User Name, Number of Followers, Location)) 
-			(columns(0).toLong, (columns(1), columns(2).toLong, columns(3)))
+			// format: (User Id, (User Name, Number of Followers, Location))
+			(columns(0).toLong, (columns(1), columns(2).toLong, columns(3)))			
          })
 	})
 	
@@ -82,18 +82,18 @@ object Twace {
   def showRetweetImpressionsByLocation(userRecords : RDD[(Long, (String, Long, String))],  userConnections : RDD[(Long, (Long, Long))])
   {
 		// Create a graph and show to which and from which locations Chase is getting retweets
-		
+				
 		// Create edges from the user connection data
 		val userConnectionEdges = userConnections.map( { case (rtwt_id, (orig_id, _)) => (rtwt_id, orig_id) -> 1} )
 												 .reduceByKey(_ + _)
 												 .map( { case ((rtwt_id, orig_id), count) => Edge(rtwt_id, orig_id, count) } )
-																		 
+												 
 		val twitterGraph: Graph[(String, Long, String), Int] = Graph.apply(userRecords, userConnectionEdges)
-		
+				
 		// Group the number of retweets by location and print out the top 5 locations
 		println("Chase gets the most retweet impressions from the following 5 markets:")
 		twitterGraph.triplets.filter( x => x.dstAttr._1 == "Chase" )
-							 .map( x => (x.srcAttr._3, x.srcAttr._2 * x.attr) )
+							 .map( x => (x.srcAttr._3, x.srcAttr._2 * x.attr) )							 
 							 .reduceByKey(_ + _)
 							 .collect.toSeq.sortBy(- _._2)
 							 .take(5)
